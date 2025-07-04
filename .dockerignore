@@ -1,0 +1,22 @@
+# IntelliJ IDEA project files
+*.iml
+.idea/
+
+# Maven wrapper and build files
+.mvn/
+mvnw
+mvnw.cmd
+
+# ignore files
+.dockerignore
+.gitignore
+
+# Project-specific directories
+docker/
+docker-compose-dev.yml
+
+# Documentation
+README.md
+
+# LICENSE
+LICENSE

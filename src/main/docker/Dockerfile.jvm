@@ -1,0 +1,35 @@
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.21 AS dependencies
+USER root
+# Copy pom.xml to the root directory
+COPY pom.xml .
+# Download and cache project dependencies
+RUN mvn -B dependency:go-offline dependency:resolve-plugins -Dmaven.repo.local=/root/.m2
+
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.21 AS build
+USER root
+# Copy project dependencies
+COPY --from=dependencies /root/.m2 /root/.m2
+# Copy project files
+COPY --chown=185 . /deployments/src/
+WORKDIR /deployments/src/
+# Build the project
+RUN mvn clean package -DskipTests -Dmaven.repo.local=/root/.m2
+
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.21
+
+ENV LANGUAGE='en_US:en'
+
+
+# We make four distinct layers so if there are application changes the library layers can be re-used
+COPY --from=build --chown=185 /deployments/src/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /deployments/src/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /deployments/src/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /deployments/src/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 8080
+USER 185
+ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
+
