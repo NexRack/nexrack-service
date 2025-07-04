@@ -44,3 +44,7 @@ nb-configuration.xml
 /.quarkus/cli/plugins/
 # TLS Certificates
 .certs/
+
+# Project specific
+/docker/nexrack-core/postgresql/
+/docker/nexrack-core/pgadmin-data/

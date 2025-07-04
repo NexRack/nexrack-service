@@ -9,7 +9,7 @@ services:
       - "8080"    # Exposed inside docker only to nginx
     networks:
       - nexrack-quarkus-network
-      - uptime-kuma-network
+      - nexrack-uptime-kuma-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
       interval: 10s
@@ -32,6 +32,26 @@ services:
       - ./docker/nexrack-core/postgresql/data:/var/lib/postgresql/data
     networks:
       - nexrack-quarkus-network
+      - nexrack-pgadmin-network
+    labels:
+      - autoheal=true
+
+  nexrack-pgadmin:
+    image: dpage/pgadmin4
+    container_name: nexrack-pgadmin
+    expose:
+      - "80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: nexrack@admin.com
+      PGADMIN_DEFAULT_PASSWORD: nexrack_admin_password
+    depends_on:
+      - nexrack-db
+    networks:
+      - nexrack-nginx-network
+      - nexrack-pgadmin-network
+    user: '$UID:$GID'
+    volumes:
+      - ./docker/nexrack-core/pgadmin-data/:/var/lib/pgadmin/
     labels:
       - autoheal=true
 
@@ -39,13 +59,16 @@ services:
     image: nginx:latest
     container_name: nexrack-nginx
     ports:
-      - "8888:80"  # Exposed port to the host through 8888
+      - "8080:80"  # Exposed port to the host through 8888
     restart: always
     networks:
-      - nginx-network
+      - nexrack-nginx-network
+      - nexrack-pgadmin-network
       - nexrack-quarkus-network
     volumes:
       - ./docker/nexrack-core/nginx.conf:/etc/nginx/nginx.conf
+    labels:
+      - autoheal=true
 
   nexrack-autoheal:
     image: willfarrell/autoheal
@@ -59,9 +82,11 @@ services:
       - nexrack-quarkus-network
 
 networks:
-  nginx-network:
+  nexrack-nginx-network:
     driver: bridge
-  uptime-kuma-network:
+  nexrack-uptime-kuma-network:
     driver: bridge
   nexrack-quarkus-network:
+    driver: bridge
+  nexrack-pgadmin-network:
     driver: bridge
